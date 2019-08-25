@@ -26,7 +26,7 @@ func Test_bestRing_Add(t *testing.T) {
 		randKey     int
 	}
 
-	var vNodeNumber int = 1
+	var vNodeNumber int = 3
 
 	tests := []struct {
 		name           string
@@ -95,6 +95,24 @@ func Test_bestRing_Add(t *testing.T) {
 			}
 
 			for s, c := range serverHitAfterDelete {
+				fmt.Printf("Server:\t[%s]\thits  [%d]\ttimes\n", s, c)
+			}
+
+			fmt.Println("After add all nodes: ")
+
+			serverHitFinally := make(map[string]int)
+
+			for i := 0; i < len(tt.args.addr); i++ {
+				serverHitFinally[tt.args.addr[i]] = 0
+				b.AddNode(tt.args.addr[i])
+			}
+
+			for i := 0; i < len(tt.args.requestKey); i++ {
+				server, _ := b.GetNode(tt.args.requestKey[i])
+				serverHitFinally[server] += 1
+			}
+
+			for s, c := range serverHitFinally {
 				fmt.Printf("Server:\t[%s]\thits  [%d]\ttimes\n", s, c)
 			}
 		})

@@ -49,9 +49,11 @@ func (a *avlTree) delete(ele uint32) int {
 }
 
 func (a *avlTree) findLatestLeft(ele uint32) uint32 {
+	// todo: reuse list
 	stack := list.New()
 
 	var node *avlNode = a.root
+	// todo: reuse slice
 	var res = make([]uint32, 0, a.total)
 
 	for stack.Len() != 0 || node != nil {
