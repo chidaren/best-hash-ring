@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+func genAddr(cnt int) []string {
+	res := make([]string, 0, cnt)
+
+	for i := 0; i < cnt; i++ {
+		res = append(res, fmt.Sprintf("192.168.0.%d", i))
+	}
+	return res
+}
+
 func Test_bestRing_Add(t *testing.T) {
 	var secKey = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-./|=:#@!%^&$*&^~")
 
@@ -16,6 +25,9 @@ func Test_bestRing_Add(t *testing.T) {
 		requestKey  [][]byte
 		randKey     int
 	}
+
+	var vNodeNumber int = 1
+
 	tests := []struct {
 		name           string
 		args           args
@@ -24,16 +36,12 @@ func Test_bestRing_Add(t *testing.T) {
 		{
 			"test1",
 			args{
-				[]string{
-					"192.168.0.1",
-					"192.168.0.2",
-					"192.168.0.3",
-				},
-				300,
+				genAddr(20),
+				vNodeNumber,
 				[][]byte{},
-				10000,
+				100000,
 			},
-			300,
+			vNodeNumber,
 		},
 	}
 
@@ -70,6 +78,23 @@ func Test_bestRing_Add(t *testing.T) {
 			}
 
 			for s, c := range serverHit {
+				fmt.Printf("Server:\t[%s]\thits  [%d]\ttimes\n", s, c)
+			}
+
+			for i := 0; i < len(tt.args.addr)/2; i++ {
+				b.DeleteNode(tt.args.addr[i])
+			}
+
+			fmt.Println("After delete half nodes: ")
+
+			serverHitAfterDelete := make(map[string]int)
+
+			for i := 0; i < len(tt.args.requestKey); i++ {
+				server, _ := b.GetNode(tt.args.requestKey[i])
+				serverHitAfterDelete[server] += 1
+			}
+
+			for s, c := range serverHitAfterDelete {
 				fmt.Printf("Server:\t[%s]\thits  [%d]\ttimes\n", s, c)
 			}
 		})

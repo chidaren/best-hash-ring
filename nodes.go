@@ -5,18 +5,19 @@ import (
 )
 
 type avlNode struct {
-	value  uint32
-	height int
-	left   *avlNode
-	right  *avlNode
+	value    uint32
+	height   int
+	isDelete bool
+
+	left  *avlNode
+	right *avlNode
 }
 
 type avlTree struct {
-	root   *avlNode
 	height int
 	total  int
-	max    uint32
-	min    uint32
+
+	root *avlNode
 }
 
 func newAVLTree() *avlTree {
@@ -25,13 +26,26 @@ func newAVLTree() *avlTree {
 
 func (a *avlTree) add(ele uint32) {
 	a.root = a.insert(a.root, ele)
-	if a.max < ele {
-		a.max = ele
-	}
-	if a.min > ele {
-		a.min = ele
-	}
 	a.height = a.root.height
+}
+
+func (a *avlTree) delete(ele uint32) int {
+	var node *avlNode = a.root
+
+	for node != nil {
+		if node.value == ele {
+			node.isDelete = true
+		}
+
+		if node.value > ele {
+			node = node.left
+		} else {
+			node = node.right
+		}
+	}
+
+	a.total -= 1
+	return a.total
 }
 
 func (a *avlTree) findLatestLeft(ele uint32) uint32 {
@@ -40,17 +54,20 @@ func (a *avlTree) findLatestLeft(ele uint32) uint32 {
 	var node *avlNode = a.root
 	var res = make([]uint32, 0, a.total)
 
-	for stack.Len() > 0 || node != nil {
-		if node != nil && node.left != nil {
+	for stack.Len() != 0 || node != nil {
+		for node != nil && node.left != nil {
 			stack.PushBack(node)
 			node = node.left
 		}
 
-		if stack.Len() > 0 || node != nil {
+		if stack.Len() != 0 || node != nil {
 			if node == nil {
 				node = stack.Remove(stack.Back()).(*avlNode)
 			}
-			res = append(res, node.value)
+
+			if !node.isDelete {
+				res = append(res, node.value)
+			}
 
 			if len(res) >= 2 && res[len(res)-2] <= ele && ele < res[len(res)-1] {
 				return res[len(res)-2]
@@ -82,6 +99,7 @@ func (a *avlTree) insert(node *avlNode, ele uint32) *avlNode {
 
 	for {
 		if ele == node.value {
+			node.isDelete = false
 			return a.root
 		}
 

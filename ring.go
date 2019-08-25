@@ -2,6 +2,7 @@ package bestring
 
 import (
 	"fmt"
+	"sync"
 )
 
 const (
@@ -21,7 +22,9 @@ type HashRing interface {
 type bestRing struct {
 	vNodeNumber int
 	realNodes   map[uint32]*ServerNode
-	nodeTree    *avlTree
+
+	nodeTree *avlTree
+	locker   *sync.RWMutex
 }
 
 func NewBestRing(vnodes int) HashRing {
@@ -33,6 +36,7 @@ func NewBestRing(vnodes int) HashRing {
 		vNodeNumber: vnodes,
 		realNodes:   make(map[uint32]*ServerNode),
 		nodeTree:    newAVLTree(),
+		locker:      new(sync.RWMutex),
 	}
 
 	return ring
@@ -44,14 +48,24 @@ func (b *bestRing) AddNode(addr string) (totalNodes int) {
 	for i := 0; i < b.vNodeNumber; i++ {
 		cur := checkSum([]byte(fmt.Sprintf("Addr:%s:Number:%d", addr, i)))
 
+		b.locker.Lock()
 		b.realNodes[cur] = nodes
 		b.nodeTree.add(cur)
+		b.locker.Unlock()
 	}
 
-	return len(b.realNodes)
+	return b.nodeTree.total
 }
 
 func (b *bestRing) DeleteNode(addr string) (totalNodes int) {
+	for i := 0; i < b.vNodeNumber; i++ {
+		cur := checkSum([]byte(fmt.Sprintf("Addr:%s:Number:%d", addr, i)))
+
+		b.locker.Lock()
+		delete(b.realNodes, cur)
+		totalNodes = b.nodeTree.delete(cur)
+		b.locker.Unlock()
+	}
 	return
 }
 
@@ -60,7 +74,10 @@ func (b *bestRing) GetNode(sec []byte) (addr string, err error) {
 		err = fmt.Errorf("empty ring")
 		return
 	}
-
 	cur := checkSum(sec)
-	return b.realNodes[b.nodeTree.findLatestLeft(cur)].Addr, nil
+
+	b.locker.RLock()
+	addr = b.realNodes[b.nodeTree.findLatestLeft(cur)].Addr
+	b.locker.RUnlock()
+	return
 }
